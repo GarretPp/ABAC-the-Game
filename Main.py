@@ -91,16 +91,16 @@ def main_menu():
         pygame.display.update()
 
 def game():
-    opt = WorkingOptions
     clock = pygame.time.Clock()
     mixer.music.set_volume(WorkingOptions.getVolume())
+    if(not WorkingOptions.isVolumeOn):
+        mixer.music.set_volume(0)
 
     #Background
     bgFile = os.path.join(THIS_FOLDER, 'Backgrounds\\GardenBackground.png')
     background = pygame.image.load(bgFile)
 
     #Background sound
-
     bgMusicFile = os.path.join(THIS_FOLDER, 'Audio\\ForestBackground16BPCM.wav')
     mixer.music.load(bgMusicFile)
     mixer.music.play(-1)
@@ -161,10 +161,11 @@ def game():
             self.y = 500
             self.yChange = 10
             self.state = "ready"
+            self.bulletSound = os.path.join(THIS_FOLDER, 'Audio\\fireSquash.wav')
         def fire(self, x):
             if self.state == "ready":
                 #play bullet sound
-                mixer.Sound(os.path.join(THIS_FOLDER, 'Audio\\fireSquash.wav')).play()
+                if (WorkingOptions.isVolumeOn): mixer.Sound(self.bulletSound).play()
                 #Get x coord of ship
                 self.state = "fire"
                 self.x = x
@@ -191,6 +192,7 @@ def game():
             self.speed = 1
             self.startingDirection = [-1,1][random.randrange(2)]
             self.yChange = 40
+            self.destroySound = os.path.join(THIS_FOLDER, 'Audio\\pop.wav')
         def getSpeed(self):
             return self.speed
             
@@ -347,12 +349,10 @@ def game():
             for bullets in BulletList:
                 collision = isCollision(x.getX(),x.getY(),bullets.getX(),bullets.getY())
                 if collision:
-                    bullets.reset()
                     score_value +=1
                     #play bullet sound
-                    explosionSoundFile = os.path.join(THIS_FOLDER, 'Audio\\pop.wav')
-                    explosion_sound = mixer.Sound(explosionSoundFile)
-                    explosion_sound.play()
+                    if (WorkingOptions.isVolumeOn): mixer.Sound(x.destroySound).play() 
+                    bullets.reset()
                     EnemyList.remove(x)
                     #Set level upgrades, single check (to centralize & organize)
                     checkLevel()
@@ -382,6 +382,8 @@ class GameOptions(object):
         self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
         self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
         self.volume = 0.1 #Float 0 to 1
+        self.isVolumeOn = True
+
 
     def getPlayerList(self):
         return self.players
@@ -436,12 +438,17 @@ def options():
     leftarrowRECT = pygame.Rect(Larrowx, arrowy, 64, 64)
     rightarrowRECT = pygame.Rect(Rarrowx, arrowy, 64, 64)
 
-    
+    #Temp Variables presave
     List_of_Players = WorkingOptions.getPlayerList()
     try:
         ListPos = List_of_Players.index(WorkingOptions.activePlayer)
     except:
         ListPos = 0
+    isVolumeOn = WorkingOptions.isVolumeOn
+    if (isVolumeOn): 
+        isVolumeOnColor = (62,222,33) 
+    else: 
+        isVolumeOnColor = (255,0,0)
 
     running = True
     while running:
@@ -455,19 +462,31 @@ def options():
                     running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if(leftarrowRECT.collidepoint(event.pos)):
+                    mousePos = event.pos
+                    if(leftarrowRECT.collidepoint(mousePos)):
                         if ListPos == 0:
                             ListPos = (len(List_of_Players) - 1)
                         else:
                             ListPos -= 1
-                    if(rightarrowRECT.collidepoint(event.pos)):
+                    if(rightarrowRECT.collidepoint(mousePos)):
                         if ListPos == (len(List_of_Players) - 1):
                             ListPos = 0
                         else:
                             ListPos += 1
-                    if(pygame.Rect(350, 525, 100, 50).collidepoint(event.pos)):
+                    if(pygame.Rect(350, 525, 100, 50).collidepoint(mousePos)):
+                        #Save button
                         WorkingOptions.setActivePlayer(List_of_Players[ListPos])
+                        WorkingOptions.isVolumeOn = isVolumeOn
                         WorkingOptions.save()
+                    if(pygame.Rect(275, 325, 250, 50).collidepoint(mousePos)):
+                        if isVolumeOn:
+                            isVolumeOn = False
+                        else:
+                            isVolumeOn = True
+                        if (isVolumeOn): 
+                            isVolumeOnColor = (62,222,33) 
+                        else: 
+                            isVolumeOnColor = (255,0,0)
 
         screen.fill((0,0,0))
         screen.blit(mmbackground, (0,0))
@@ -484,6 +503,11 @@ def options():
         #option 1 left and right arrows
         screen.blit(leftarrow, (Larrowx, arrowy))
         screen.blit(rightarrow, (Rarrowx, arrowy))
+
+        #Volume toggle control
+        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(270, 320, 260, 60))
+        pygame.draw.rect(screen, isVolumeOnColor, pygame.Rect(275, 325, 250, 50))
+        draw_text('Toggle Volume', font, (255,255,255), screen, 280, 335)
 
         #Save button
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(345, 520, 110, 60))
