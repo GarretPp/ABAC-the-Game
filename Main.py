@@ -3,6 +3,7 @@ import os
 import random
 import math
 import sys
+import _pickle as cPickle
 from pygame import mixer
 
 #Initializing pygame game
