@@ -3,7 +3,6 @@ import os
 import random
 import math
 import sys
-import _pickle as cPickle
 from pygame import mixer
 
 #Initializing pygame game
@@ -472,9 +471,8 @@ def options():
         screen.fill((0,0,0))
         screen.blit(mmbackground, (0,0))
         #MainMenu Text & Box 
-        mmRect = pygame.Rect(275, 95, 250, 50)
         pygame.draw.rect(screen, (23, 136, 235), pygame.Rect(270, 90, 260, 60))
-        pygame.draw.rect(screen, (237, 237, 237), mmRect)
+        pygame.draw.rect(screen, (237, 237, 237), pygame.Rect(275, 95, 250, 50))
         draw_text('Options', font, (255, 0, 0), screen, 330, 105)
         
         #Option 1... Outer box, inner box, text
