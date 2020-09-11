@@ -92,7 +92,7 @@ def main_menu():
 
 def game():
     clock = pygame.time.Clock()
-    mixer.music.set_volume(WorkingOptions.getVolume())
+    mixer.music.set_volume(WorkingOptions.volume)
     if(not WorkingOptions.isVolumeOn):
         mixer.music.set_volume(0)
 
@@ -377,18 +377,13 @@ def game():
 #Set up settings
 class GameOptions(object):
     def __init__(self):
-        self.players = ["Dr. Gahagen","Jason","Dr. Beals"]
+        self.players = ["Dr. Gahagen","Jason Pace","Dr. Beals"]
         self.activePlayer = "Dr. Gahagen"
         self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
         self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
         self.volume = 0.1 #Float 0 to 1
         self.isVolumeOn = True
 
-
-    def getPlayerList(self):
-        return self.players
-    def getVolume(self):
-        return self.volume
     def update(self, activePlayer):
         self.activePlayer = activePlayer
     def setActivePlayer(self, newPlayer):
@@ -396,7 +391,7 @@ class GameOptions(object):
         if(self.activePlayer == "Dr. Gahagen"):
             self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
             self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
-        if(self.activePlayer == "Jason"):
+        if(self.activePlayer == "Jason Pace"):
             self.playerImg = os.path.join(THIS_FOLDER, 'Players\\DefaultMalePlayer.png')
             self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\DefaultShot.png')
         if(self.activePlayer == "Dr. Beals"):
@@ -409,7 +404,6 @@ class GameOptions(object):
     def load(self):
         with open(os.path.join(THIS_FOLDER, 'GameOptions.txt'),'rb') as f:
             dataPickle = f.read()
-
         self.__dict__ = cPickle.loads(dataPickle)
 
 #Initially create useable instance of options and load for use globally
@@ -429,26 +423,33 @@ except:
 def options():
     #Background
     mmbackground = pygame.image.load(os.path.join(THIS_FOLDER, 'Backgrounds\\MainMenuBgnd.png'))
-
-    arrowy = 218
-    Larrowx = 177
-    Rarrowx = 560
     leftarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\LeftArrow.png'))
     rightarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\RightArrow.png'))
-    leftarrowRECT = pygame.Rect(Larrowx, arrowy, 64, 64)
-    rightarrowRECT = pygame.Rect(Rarrowx, arrowy, 64, 64)
+
+    arrowy1 = 218; Larrowx1 = 177; Rarrowx1 = 560
+    leftarrowRECT1 = pygame.Rect(Larrowx1, arrowy1, 64, 64)
+    rightarrowRECT1 = pygame.Rect(Rarrowx1, arrowy1, 64, 64)
+
+    arrowy2 = 318; Larrowx2 = 177; Rarrowx2 = 560
+    leftarrowRECT2 = pygame.Rect(Larrowx2, arrowy2, 64, 64)
+    rightarrowRECT2 = pygame.Rect(Rarrowx2, arrowy2, 64, 64)
 
     #Temp Variables presave
-    List_of_Players = WorkingOptions.getPlayerList()
+    List_of_Players = WorkingOptions.players
     try:
-        ListPos = List_of_Players.index(WorkingOptions.activePlayer)
+        PlayerListPos = List_of_Players.index(WorkingOptions.activePlayer)
     except:
-        ListPos = 0
+        PlayerListPos = 0
     isVolumeOn = WorkingOptions.isVolumeOn
     if (isVolumeOn): 
         isVolumeOnColor = (62,222,33) 
     else: 
         isVolumeOnColor = (255,0,0)
+    volumeList = [0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100] 
+    try:
+        volumeListPos = volumeList.index(100 * WorkingOptions.volume)
+    except:
+        volumeListPos = 10
 
     running = True
     while running:
@@ -463,22 +464,38 @@ def options():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mousePos = event.pos
-                    if(leftarrowRECT.collidepoint(mousePos)):
-                        if ListPos == 0:
-                            ListPos = (len(List_of_Players) - 1)
+                    if(leftarrowRECT1.collidepoint(mousePos)):
+                        #left arrow 1 (professor)
+                        if PlayerListPos == 0:
+                            PlayerListPos = (len(List_of_Players) - 1)
                         else:
-                            ListPos -= 1
-                    if(rightarrowRECT.collidepoint(mousePos)):
-                        if ListPos == (len(List_of_Players) - 1):
-                            ListPos = 0
+                            PlayerListPos -= 1
+                    if(rightarrowRECT1.collidepoint(mousePos)):
+                        #right arrow 1 (professor)
+                        if PlayerListPos == (len(List_of_Players) - 1):
+                            PlayerListPos = 0
                         else:
-                            ListPos += 1
+                            PlayerListPos += 1
+                    if(leftarrowRECT2.collidepoint(mousePos)):
+                        #left arrow 2 (volume)
+                        if volumeListPos == 0:
+                            volumeListPos = (len(volumeList) - 1)
+                        else:
+                            volumeListPos -= 1
+                    if(rightarrowRECT2.collidepoint(mousePos)):
+                        #right arrow 2 (volume)
+                        if volumeListPos == (len(volumeList) - 1):
+                            volumeListPos = 0
+                        else:
+                            volumeListPos += 1
                     if(pygame.Rect(350, 525, 100, 50).collidepoint(mousePos)):
                         #Save button
-                        WorkingOptions.setActivePlayer(List_of_Players[ListPos])
+                        WorkingOptions.setActivePlayer(List_of_Players[PlayerListPos])
                         WorkingOptions.isVolumeOn = isVolumeOn
+                        WorkingOptions.volume = (volumeList[volumeListPos] / 100)
                         WorkingOptions.save()
-                    if(pygame.Rect(275, 325, 250, 50).collidepoint(mousePos)):
+                    if(pygame.Rect(275, 425, 250, 50).collidepoint(mousePos)):
+                        #Toggle volume buttonn
                         if isVolumeOn:
                             isVolumeOn = False
                         else:
@@ -495,19 +512,28 @@ def options():
         pygame.draw.rect(screen, (237, 237, 237), pygame.Rect(275, 95, 250, 50))
         draw_text('Options', font, (255, 0, 0), screen, 330, 105)
         
-        #Option 1... Outer box, inner box, text
+        #Professor control... Outer box, inner box, text
         #option 1 presents list of players
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(245, 220, 310, 60))
         pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(250, 225, 300, 50))
-        draw_text(str(List_of_Players[ListPos]), font, (255,255,255), screen, 262, 235)
+        draw_text(str(List_of_Players[PlayerListPos]), font, (255,255,255), screen, 262, 235)
         #option 1 left and right arrows
-        screen.blit(leftarrow, (Larrowx, arrowy))
-        screen.blit(rightarrow, (Rarrowx, arrowy))
+        screen.blit(leftarrow, (Larrowx1, arrowy1))
+        screen.blit(rightarrow, (Rarrowx1, arrowy1))
 
-        #Volume toggle control
+        #Professor control... Outer box, inner box, text
+        #option 1 presents list of players
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(270, 320, 260, 60))
-        pygame.draw.rect(screen, isVolumeOnColor, pygame.Rect(275, 325, 250, 50))
-        draw_text('Toggle Volume', font, (255,255,255), screen, 280, 335)
+        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(275, 325, 250, 50))
+        draw_text("Sound "+str(volumeList[volumeListPos])+"%", font, (255,255,255), screen, 305, 335)
+        #option 1 left and right arrows
+        screen.blit(leftarrow, (Larrowx2, arrowy2))
+        screen.blit(rightarrow, (Rarrowx2, arrowy2))
+
+        #Sound toggle control
+        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(270, 420, 260, 60))
+        pygame.draw.rect(screen, isVolumeOnColor, pygame.Rect(275, 425, 250, 50))
+        draw_text('Toggle Sound', font, (255,255,255), screen, 280, 435)
 
         #Save button
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(345, 520, 110, 60))
