@@ -52,22 +52,10 @@ def main_menu():
         pygame.draw.rect(screen, (23, 136, 235), pygame.Rect(270, 120, 260, 60))
         pygame.draw.rect(screen, (237, 237, 237), mmRect)
         draw_text('Main Menu', font, (255, 0, 0), screen, 310, 135)
- 
-        mx, my = pygame.mouse.get_pos()
- 
+  
         button_1 = pygame.Rect(300, 225, 200, 50)
         button_2 = pygame.Rect(300, 325, 200, 50)
         button_3 = pygame.Rect(300, 425, 200, 50)
-        if button_1.collidepoint((mx, my)):
-            if click:
-                game()
-        if button_2.collidepoint((mx, my)):
-            if click:
-                options()
-        if button_3.collidepoint((mx, my)):
-            if click:
-                pygame.quit()
-                sys.exit()
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(295, 220, 210, 60))
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(295, 320, 210, 60))
         pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(295, 420, 210, 60))
@@ -92,12 +80,20 @@ def main_menu():
                     sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    click = True
+                    if button_1.collidepoint(event.pos):
+                        game()
+                    if button_2.collidepoint(event.pos):
+                        options()
+                    if button_3.collidepoint(event.pos):
+                        pygame.quit()
+                        sys.exit()
  
         pygame.display.update()
 
 def game():
+    opt = WorkingOptions
     clock = pygame.time.Clock()
+    mixer.music.set_volume(WorkingOptions.getVolume())
 
     #Background
     bgFile = os.path.join(THIS_FOLDER, 'Backgrounds\\GardenBackground.png')
@@ -141,12 +137,26 @@ def game():
             self.speed = speed
         def blit(self):
             screen.blit(pygame.image.load(self.img), (int(self.x), int(self.y)))
-    
+    #Player creation
+    class Player(Entity):
+        def __init__(self):
+            super().__init__()
+            self.img = WorkingOptions.playerImg
+            self.x = 350
+            self.y = 500
+            self.xChange = 0
+            self.speed = 6
+            self.bulletIMG = WorkingOptions.bulletImg
+        def update(self):
+            self.x += self.xChange
+            self.blit()
+            
+    PlayerEntity = Player()    
     #Class to spawn bullet
     class Bullet(Entity):
         def __init__(self):
             super().__init__()
-            self.img = os.path.join(THIS_FOLDER, 'Players\\DefaultImg.png')
+            self.img = PlayerEntity.bulletIMG
             self.x = 0
             self.y = 500
             self.yChange = 10
@@ -167,25 +177,10 @@ def game():
             self.x = 0
             self.y = 500
             self.state = "ready"
-    BulletEntity = Bullet()
-
-
-    #Player creation
-    class Player(Entity):
-        def __init__(self):
-            super().__init__()
-            self.img = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
-            self.x = 350
-            self.y = 500
-            self.xChange = 0
-            self.speed = 6
-            self.bullet = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
-        def update(self):
-            self.x += self.xChange
-            self.blit()
-            
-    PlayerEntity = Player()
-    BulletEntity.img = PlayerEntity.bullet
+    ammo = 3
+    BulletList = []
+    for bullets in range(ammo):
+        BulletList.append(Bullet())
 
     class Enemy(Entity):
         def __init__(self):
@@ -229,14 +224,6 @@ def game():
     for i in range(initialEnemies):
         EnemyList.append(Coronavirus())
 
-    #Level Handler
-    global level_value
-    level_value = 1
-    def handleLevel():
-        lvlRect = pygame.Rect(5, 50, 180, 40)
-        pygame.draw.rect(screen, (0, 102, 102), lvlRect)
-        lvl = font.render("Level: "+ str(level_value), True, (255,255,255))
-        screen.blit(lvl,(10,55))
     #Score handling
     score_value = 0
     def show_score():
@@ -244,6 +231,29 @@ def game():
         pygame.draw.rect(screen, (0, 102, 102), button_1)
         score = font.render("Score: "+ str(score_value), True, (255,255,255))
         screen.blit(score,(10,10))
+    #Score handling
+    score_value = 0
+    def show_score():
+        button_1 = pygame.Rect(5, 5, 180, 40)
+        pygame.draw.rect(screen, (0, 102, 102), button_1)
+        score = font.render("Score: "+ str(score_value), True, (255,255,255))
+        screen.blit(score,(10,10))
+
+    #Level Handler
+    global shots_value
+    shots_value = 0
+    def show_shots():
+        pygame.draw.rect(screen, (0, 102, 102), pygame.Rect(5, 50, 180, 40))
+        shots = font.render("Shots: "+ str(shots_value), True, (255,255,255))
+        screen.blit(shots,(10,55))
+
+    #Level Handler
+    global level_value
+    level_value = 1
+    def show_level():
+        pygame.draw.rect(screen, (0, 102, 102), pygame.Rect(600, 5, 180, 40))
+        lvl = font.render("Level: "+ str(level_value), True, (255,255,255))
+        screen.blit(lvl,(605,10))
     def checkLevel():
         #move all level spawning, including initial possibly here
         global level_value
@@ -299,8 +309,11 @@ def game():
                     PlayerEntity.setXChange(PlayerEntity.getSpeed())
                    # playerX_change = movespeed
                 if event.key == pygame.K_SPACE:
-                    if BulletEntity.getState() == "ready":
-                        BulletEntity.fire(PlayerEntity.getX())
+                    for x in BulletList:
+                        if x.getState() == "ready":
+                            x.fire(PlayerEntity.getX())
+                            shots_value += 1
+                            break
                 if event.key == pygame.K_ESCAPE:
                     pygame.mixer.music.pause()
                     running = False
@@ -331,45 +344,66 @@ def game():
                 x.setSpeed(-x.getSpeed())
                 x.setY(x.getY()+x.getYChange())
             #Collisions
-            collision = isCollision(x.getX(),x.getY(),BulletEntity.getX(),BulletEntity.getY())
-            if collision:
-                BulletEntity.reset()
-                score_value +=1
-                #play bullet sound
-                explosionSoundFile = os.path.join(THIS_FOLDER, 'Audio\\pop.wav')
-                explosion_sound = mixer.Sound(explosionSoundFile)
-                explosion_sound.play()
-                EnemyList.remove(x)
-                #Set level upgrades, single check (to centralize & organize)
-                checkLevel()
+            for bullets in BulletList:
+                collision = isCollision(x.getX(),x.getY(),bullets.getX(),bullets.getY())
+                if collision:
+                    bullets.reset()
+                    score_value +=1
+                    #play bullet sound
+                    explosionSoundFile = os.path.join(THIS_FOLDER, 'Audio\\pop.wav')
+                    explosion_sound = mixer.Sound(explosionSoundFile)
+                    explosion_sound.play()
+                    EnemyList.remove(x)
+                    #Set level upgrades, single check (to centralize & organize)
+                    checkLevel()
             x.blit()
         #Bullet boundry
-        if BulletEntity.getY() <= -10:
-            BulletEntity.reset()
-        #Bullet movement
-        if BulletEntity.getState() == "fire":
-            BulletEntity.fire(BulletEntity.getX())
+        for x in BulletList:
+            if x.getY() <= -10:
+                x.reset()
+            #Bullet movement
+            if x.getState() == "fire":
+                x.fire(x.getX())
         if(isGameOver):
             game_over()
         #push to player/coronaEnemy func
         PlayerEntity.update()
         show_score()
-        handleLevel()
+        show_shots()
+        show_level()
         pygame.display.update()
         clock.tick(30)
 
 #Set up settings
 class GameOptions(object):
     def __init__(self):
-        self.players = ["Gahagen"]
-        self.activePlayer = "Gahagen"    
+        self.players = ["Dr. Gahagen","Jason","Dr. Beals"]
+        self.activePlayer = "Dr. Gahagen"
+        self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
+        self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
+        self.volume = 0.1 #Float 0 to 1
 
+    def getPlayerList(self):
+        return self.players
+    def getVolume(self):
+        return self.volume
     def update(self, activePlayer):
         self.activePlayer = activePlayer
+    def setActivePlayer(self, newPlayer):
+        self.activePlayer = newPlayer
+        if(self.activePlayer == "Dr. Gahagen"):
+            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
+            self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
+        if(self.activePlayer == "Jason"):
+            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\DefaultMalePlayer.png')
+            self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\DefaultShot.png')
+        if(self.activePlayer == "Dr. Beals"):
+            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\DefaultMalePlayer.png')
+            self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\DefaultShot.png')
+
     def save(self):
         with open(os.path.join(THIS_FOLDER, 'GameOptions.txt'),'wb') as f:
             f.write(cPickle.dumps(self.__dict__))
-
     def load(self):
         with open(os.path.join(THIS_FOLDER, 'GameOptions.txt'),'rb') as f:
             dataPickle = f.read()
@@ -378,6 +412,12 @@ class GameOptions(object):
 
 #Initially create useable instance of options and load for use globally
 WorkingOptions = GameOptions()
+
+#ToDo add mechanism to check if file contains all attributes
+#If not working, delete gameoptions txt file. Probably contains older class version
+
+#currently saves options first since there is no front end saving option
+
 try:
     WorkingOptions.load()
 except:
@@ -387,13 +427,47 @@ except:
 def options():
     #Background
     mmbackground = pygame.image.load(os.path.join(THIS_FOLDER, 'Backgrounds\\MainMenuBgnd.png'))
+
+    arrowy = 218
+    Larrowx = 177
+    Rarrowx = 560
     leftarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\LeftArrow.png'))
     rightarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\RightArrow.png'))
-    leftarrowRECT = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\LeftArrow.png')).convert().get_rect()
-    rightarrowRECT = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\RightArrow.png')).convert().get_rect()
+    leftarrowRECT = pygame.Rect(Larrowx, arrowy, 64, 64)
+    rightarrowRECT = pygame.Rect(Rarrowx, arrowy, 64, 64)
+
+    
+    List_of_Players = WorkingOptions.getPlayerList()
+    try:
+        ListPos = List_of_Players.index(WorkingOptions.activePlayer)
+    except:
+        ListPos = 0
 
     running = True
     while running:
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if(leftarrowRECT.collidepoint(event.pos)):
+                        if ListPos == 0:
+                            ListPos = (len(List_of_Players) - 1)
+                        else:
+                            ListPos -= 1
+                    if(rightarrowRECT.collidepoint(event.pos)):
+                        if ListPos == (len(List_of_Players) - 1):
+                            ListPos = 0
+                        else:
+                            ListPos += 1
+                    if(pygame.Rect(350, 525, 100, 50).collidepoint(event.pos)):
+                        WorkingOptions.setActivePlayer(List_of_Players[ListPos])
+                        WorkingOptions.save()
 
         screen.fill((0,0,0))
         screen.blit(mmbackground, (0,0))
@@ -403,34 +477,21 @@ def options():
         pygame.draw.rect(screen, (237, 237, 237), mmRect)
         draw_text('Options', font, (255, 0, 0), screen, 330, 105)
         
-
         #Option 1... Outer box, inner box, text
         #option 1 presents list of players
-        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(295, 220, 210, 60))
-        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(300, 225, 200, 50))
-        draw_text("Gahagen", font, (255,255,255), screen, 312, 235)
-        screen.blit(leftarrow, (227, 218))
-        screen.blit(rightarrow, (510, 218))
+        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(245, 220, 310, 60))
+        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(250, 225, 300, 50))
+        draw_text(str(List_of_Players[ListPos]), font, (255,255,255), screen, 262, 235)
+        #option 1 left and right arrows
+        screen.blit(leftarrow, (Larrowx, arrowy))
+        screen.blit(rightarrow, (Rarrowx, arrowy))
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # Set the x, y postions of the mouse click
-                print('Mouse button clicked')
-                print("Most pos " + str(event.pos))
-                mx, my = event.pos
-                #Mouse event is captured w pos, but not recognizing collision
-                if leftarrowRECT.collidepoint(mx, my):
-                    print('Left Arrow Clicked')
-                if rightarrowRECT.collidepoint(mx, my):
-                    print('Right Arrow Clicked')
+        #Save button
+        pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(345, 520, 110, 60))
+        pygame.draw.rect(screen, (255, 0, 0), pygame.Rect(350, 525, 100, 50))
+        draw_text("Save", font, (255,255,255), screen, 362, 535)
 
-        
+
         pygame.display.update()
 
 main_menu()
