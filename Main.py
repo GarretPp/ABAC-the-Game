@@ -143,7 +143,7 @@ def game():
             super().__init__()
             self.img = WorkingOptions.playerImg
             self.x = 350
-            self.y = 500
+            self.y = 450
             self.xChange = 0
             self.speed = 6
             self.bulletIMG = WorkingOptions.bulletImg
@@ -168,10 +168,10 @@ def game():
                 if (WorkingOptions.isVolumeOn): mixer.Sound(self.bulletSound).play()
                 #Get x coord of ship
                 self.state = "fire"
-                self.x = x
+                self.x = x + 45
             if self.state == "fire":
                 self.y -= self.yChange
-                screen.blit(pygame.image.load(self.img), (int(x+30),int(self.y+10)))
+                screen.blit(pygame.image.load(self.img), (int(self.x),int(self.y)))
         def getState(self):
             return self.state
         def reset(self):
@@ -226,18 +226,17 @@ def game():
     for i in range(initialEnemies):
         EnemyList.append(Coronavirus())
 
+    #Timer
+    countTime = 0
+    def show_time():
+        pygame.draw.rect(screen, (0, 102, 102), pygame.Rect(600, 50, 180, 40))
+        score = font.render("Time: "+str(int(math.trunc(countTime/30))), True, (255,255,255))
+        screen.blit(score,(605,55))
+
     #Score handling
     score_value = 0
     def show_score():
-        button_1 = pygame.Rect(5, 5, 180, 40)
-        pygame.draw.rect(screen, (0, 102, 102), button_1)
-        score = font.render("Score: "+ str(score_value), True, (255,255,255))
-        screen.blit(score,(10,10))
-    #Score handling
-    score_value = 0
-    def show_score():
-        button_1 = pygame.Rect(5, 5, 180, 40)
-        pygame.draw.rect(screen, (0, 102, 102), button_1)
+        pygame.draw.rect(screen, (0, 102, 102), pygame.Rect(5, 5, 180, 40))
         score = font.render("Score: "+ str(score_value), True, (255,255,255))
         screen.blit(score,(10,10))
 
@@ -274,26 +273,46 @@ def game():
                 EnemyList.append(SuperCoronavirus())
 
     def isCollision(EnemyX, EnemyY, bulletX, bulletY):
-        distance = math.sqrt(math.pow(EnemyX - bulletX, 2) + (math.pow(EnemyY - bulletY, 2)))
-        if distance < 30:
+        #collision based on center of 64x64px enemy
+        #TODO rework to take inpput of enemy width and heigth and generalize centering mechanism
+        distance = math.sqrt(math.pow((EnemyX + 32) - bulletX, 2) + (math.pow((EnemyY + 32) - bulletY, 2)))
+        if distance < 32:
             return True
         else:
             return False
-
     
     #Game Over handling
     global isGameOver
+    global end_time
     isGameOver = False
+    end_time = 0
     def game_over():
-        ClearEnemies()
         global isGameOver
+        if(not isGameOver):
+            end_time = str(int(math.trunc(countTime/30)))
+        ClearEnemies()
         isGameOver = True
         over_text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-ExtraBold.ttf'), 70).render("GAME OVER", True, (214, 2, 230))
-        screen.blit(over_text,(200,200))
+        screen.blit(over_text,(200,100))
+        over_text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-Semibold.ttf'), 35).render("Time: "+end_time+" | Accuracy: "+str((score_value/shots_value)*100), True, (214, 2, 230))
+        screen.blit(over_text,(200,250))
+
+    def PauseGame():
+        Pause = True
+        text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-ExtraBold.ttf'), 70).render("GAME PAUSED", True, (255, 0, 0))
+        while(Pause):
+            screen.blit(text,(170,200))
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if(event.key == pygame.K_p):
+                        Pause = False    
+            pygame.display.update()
+            clock.tick(30)
 
     #Main repeater
     running = True
     while running:
+        countTime += 1
         #RGB & set background
         screen.fill((0, 0, 0))
         screen.blit(background, (0,0))
@@ -306,10 +325,8 @@ def game():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     PlayerEntity.setXChange(-(PlayerEntity.getSpeed()))
-                    #playerX_change = -(movespeed)
                 if event.key == pygame.K_RIGHT:
                     PlayerEntity.setXChange(PlayerEntity.getSpeed())
-                   # playerX_change = movespeed
                 if event.key == pygame.K_SPACE:
                     for x in BulletList:
                         if x.getState() == "ready":
@@ -319,7 +336,8 @@ def game():
                 if event.key == pygame.K_ESCAPE:
                     pygame.mixer.music.pause()
                     running = False
-
+                if(event.key == pygame.K_p):
+                    PauseGame()
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
                     PlayerEntity.setXChange(0)
@@ -327,13 +345,13 @@ def game():
         #Create boundaries for PLAYER
         if PlayerEntity.getX() < 0:
             PlayerEntity.setX(0)
-        elif PlayerEntity.getX() > 736:
-            PlayerEntity.setX(736)
+        elif PlayerEntity.getX() > 655:
+            PlayerEntity.setX(655)
         
         #Iterates through copied list
         for x in EnemyList[:]:
             #Game Over
-            if  x.getY() > 440:
+            if  x.getY() > 420:
                 game_over()
                 break
             #coronaEnemy Movement
@@ -371,6 +389,7 @@ def game():
         show_score()
         show_shots()
         show_level()
+        show_time()
         pygame.display.update()
         clock.tick(30)
 
@@ -392,10 +411,10 @@ class GameOptions(object):
             self.playerImg = os.path.join(THIS_FOLDER, 'Players\\GahagenPlayer.png')
             self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\GahagenShot.png')
         if(self.activePlayer == "Jason Pace"):
-            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\DefaultMalePlayer.png')
+            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\JasonPacePlayer.png')
             self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\DefaultShot.png')
         if(self.activePlayer == "Dr. Beals"):
-            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\DefaultMalePlayer.png')
+            self.playerImg = os.path.join(THIS_FOLDER, 'Players\\BealsPlayer.png')
             self.bulletImg = os.path.join(THIS_FOLDER, 'Players\\DefaultShot.png')
 
     def save(self):
@@ -425,6 +444,9 @@ def options():
     mmbackground = pygame.image.load(os.path.join(THIS_FOLDER, 'Backgrounds\\MainMenuBgnd.png'))
     leftarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\LeftArrow.png'))
     rightarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\RightArrow.png'))
+    
+    backarrow = pygame.image.load(os.path.join(THIS_FOLDER, 'MenuItems\\BackArrow.png'))
+    backarrowRect = pygame.Rect(25, 25, 64, 64)
 
     arrowy1 = 218; Larrowx1 = 177; Rarrowx1 = 560
     leftarrowRECT1 = pygame.Rect(Larrowx1, arrowy1, 64, 64)
@@ -464,6 +486,8 @@ def options():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     mousePos = event.pos
+                    if(backarrowRect.collidepoint(mousePos)):
+                        running = False
                     if(leftarrowRECT1.collidepoint(mousePos)):
                         #left arrow 1 (professor)
                         if PlayerListPos == 0:
@@ -507,6 +531,10 @@ def options():
 
         screen.fill((0,0,0))
         screen.blit(mmbackground, (0,0))
+
+        #back arrow
+        screen.blit(backarrow,(25,25))
+
         #MainMenu Text & Box 
         pygame.draw.rect(screen, (23, 136, 235), pygame.Rect(270, 90, 260, 60))
         pygame.draw.rect(screen, (237, 237, 237), pygame.Rect(275, 95, 250, 50))
