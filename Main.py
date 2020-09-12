@@ -230,7 +230,7 @@ def game():
     countTime = 0
     def show_time():
         pygame.draw.rect(screen, (0, 102, 102), pygame.Rect(600, 50, 180, 40))
-        score = font.render("Time: "+str(int(math.trunc(countTime/30))), True, (255,255,255))
+        score = font.render("Time: "+str(int(math.trunc(countTime/30)))+"s", True, (255,255,255))
         screen.blit(score,(605,55))
 
     #Score handling
@@ -284,18 +284,25 @@ def game():
     #Game Over handling
     global isGameOver
     global end_time
+    global accuracy
     isGameOver = False
     end_time = 0
+    accuracy = 0
     def game_over():
         global isGameOver
+        global end_time
+        global accuracy
         if(not isGameOver):
             end_time = str(int(math.trunc(countTime/30)))
+            if(not shots_value == 0):
+                accuracy = math.trunc((score_value/shots_value)*100)
         ClearEnemies()
         isGameOver = True
         over_text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-ExtraBold.ttf'), 70).render("GAME OVER", True, (214, 2, 230))
-        screen.blit(over_text,(200,100))
-        over_text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-Semibold.ttf'), 35).render("Time: "+end_time+" | Accuracy: "+str((score_value/shots_value)*100), True, (214, 2, 230))
-        screen.blit(over_text,(200,250))
+        screen.blit(over_text,(200,150))
+        pygame.draw.rect(screen, (255, 255, 255), pygame.Rect(180, 250, 460, 50))
+        over_text = pygame.font.Font(os.path.join(THIS_FOLDER, 'Fonts\\OpenSans-Semibold.ttf'), 35).render("Time: "+end_time+"s | Accuracy: "+str(accuracy)+"%", True, (214, 2, 230))
+        screen.blit(over_text,(190,250))
 
     def PauseGame():
         Pause = True
@@ -312,7 +319,8 @@ def game():
     #Main repeater
     running = True
     while running:
-        countTime += 1
+        if(not isGameOver):
+            countTime += 1
         #RGB & set background
         screen.fill((0, 0, 0))
         screen.blit(background, (0,0))
